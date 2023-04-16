@@ -6,7 +6,7 @@ class BlockCipher(object):
     def __init__(self, key, nonce, blockLength=8, rounds=8):
         self.key = hashlib.sha256(key.encode()).hexdigest()
         self.nonce = str(int(hashlib.sha256(nonce.encode()).hexdigest(), 16))[:blockLength]
-        #print(f"{self.nonce} nonce")
+        print(f"{self.nonce} nonce")
         random.seed()
         self.blockLength = blockLength
         self.rounds = rounds
@@ -41,12 +41,11 @@ class BlockCipher(object):
         return "".join([chr(ord(block[i]) ^ ord(IV[i])) for i in range(self.blockLength)])
     
     def _substitute(self, block):
-        alphabet = string.printable
         tmp = ""
         for i in block:
-            val = random.randint(0, len(alphabet)-1)
-            #print(val)
-            tmp += chr(val + ord(i))
+            val = random.randint(0, 30)
+            print(val)
+            tmp += chr(abs(ord(i) + val))
         return tmp
 
     def _permute(self, block):
@@ -77,7 +76,7 @@ class BlockCipher(object):
 
     def _decrypt(self, ciphertext):
         blocks = self.getBlocks(ciphertext)
-        currentXor = self.nonce       
+        currentXor = self.nonce
 
         for _ in range(self.rounds):
             IVS = []
@@ -86,6 +85,7 @@ class BlockCipher(object):
                 currentXor = hashlib.sha256(i.encode()).hexdigest()[-self.blockLength:] 
             for j in range(len(blocks)):
                 blocks[j] = self._decryptBlock(blocks[j], IVS[j])
+        
         return self.rempad("".join(blocks))
 
     def _decryptBlock(self, block, IV):
@@ -107,10 +107,11 @@ class BlockCipher(object):
 
     def _unsubstitute(self, block):
         random.seed(self.key)
-        alphabet = string.printable
         tmp = ""
         for i in block:
-            tmp += chr(ord(i) - random.randint(0, len(alphabet)-1))
+            val = random.randint(0, 30)
+            print(ord(i), val)
+            tmp += chr(abs(ord(i) - val))
         return tmp
 
 
