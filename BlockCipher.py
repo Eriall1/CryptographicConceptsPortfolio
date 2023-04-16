@@ -1,12 +1,12 @@
-import hashlib, random, string
+import hashlib, random
 
 
 
 class BlockCipher(object):
     def __init__(self, key, nonce, blockLength=8, rounds=8):
-        self.key = hashlib.sha256(key.encode()).hexdigest()
+        self.key = hashlib.sha512(key.encode()).hexdigest()
         self.nonce = str(int(hashlib.sha256(nonce.encode()).hexdigest(), 16))[:blockLength]
-        print(f"{self.nonce} nonce")
+        #print(f"{self.nonce=}")
         random.seed()
         self.blockLength = blockLength
         self.rounds = rounds
@@ -19,7 +19,7 @@ class BlockCipher(object):
         blocks = self.getBlocks(plaintext)
         currentXor = self.nonce
         for _ in range(self.rounds):
-            print(currentXor)
+            #print(currentXor)
             for j in range(len(blocks)):
 
                 
@@ -30,9 +30,7 @@ class BlockCipher(object):
 
     def _encryptBlock(self, block, IV):
         block = self._injectIV(block, IV)
-        random.seed(self.key)
         block = self._substitute(block)
-        random.seed(self.key)
         block = self._permute(block)
         block = "".join(chr(ord(i)^ord(v)) for i, v in zip(block, self.key))
         return block
@@ -41,19 +39,20 @@ class BlockCipher(object):
         return "".join([chr(ord(block[i]) ^ ord(IV[i])) for i in range(self.blockLength)])
     
     def _substitute(self, block):
+        random.seed(self.key)
         tmp = ""
         for i in block:
-            val = random.randint(0, 30)
-            print(val)
+            val = random.randint(0, 2**14)
+            #print(val)
             tmp += chr(abs(ord(i) + val))
         return tmp
 
     def _permute(self, block):
-        perms = ""
-        while len(perms) < self.blockLength:
-            gen = str(random.randint(0, self.blockLength-1))
-            if gen not in perms:
-                perms += str(gen)
+        random.seed(self.key)
+        perms = list(range(8))
+        random.shuffle(perms)
+        perms = "".join([str(i) for i in perms])
+        
         revperms = "".join([str(perms.index(str(i))) for i in range(0, self.blockLength)])
         #print(perms, revperms)
         permd = "".join([block[int(i)] for i in perms])
@@ -97,11 +96,10 @@ class BlockCipher(object):
 
     def _unpermute(self, block):
         random.seed(self.key)
-        perms = ""
-        while len(perms) < self.blockLength:
-            gen = str(random.randint(0, self.blockLength-1))
-            if gen not in perms:
-                perms += str(gen)
+        perms = list(range(8))
+        random.shuffle(perms)
+        perms = "".join([str(i) for i in perms])
+        
         revperms = "".join([str(perms.index(str(i))) for i in range(0, self.blockLength)])
         return "".join([block[int(i)] for i in revperms])
 
@@ -109,35 +107,29 @@ class BlockCipher(object):
         random.seed(self.key)
         tmp = ""
         for i in block:
-            val = random.randint(0, 30)
-            print(ord(i), val)
+            val = random.randint(0, 2**14)
+            #print(ord(i), val)
             tmp += chr(abs(ord(i) - val))
         return tmp
 
 
+
+
+plaintext = "Leave the pen drive in Room 18.103 at ECU."
+
 key = ""
-nonce = ""
+nonce = str(random.randint(0, 2**64))
 
-a = BlockCipher(key, nonce, 8, 1)
+blockCipher = BlockCipher(key, nonce, 8, 1)
 
-plaintext = "Leave the pen drive in Room 18.103 at ECU."
+ciphertext = blockCipher.encrypt(plaintext)
+deciphertext = blockCipher.decrypt(ciphertext)
 
-ciphertext = a.encrypt(plaintext)
 
-dectext = a.decrypt(ciphertext)
-print(plaintext)
-print(ciphertext)
-print(dectext)
+print(f"{plaintext=} ")
+print(f"{ciphertext=} ")
+print(f"{deciphertext=} ")
 
-assert plaintext == dectext
+assert plaintext == deciphertext
 
-plaintext = "Leave the pen drive in Room 18.103 at ECU."
-"""
-for i in range(3):
-    a = BlockCipher(key, nonce+str(i), 8, 1)
-    ciphertext = a.encrypt(plaintext)
-    print(ciphertext)
-    dectext = a.decrypt(ciphertext)
-    print(dectext)
-
-"""
+print("Success!")
