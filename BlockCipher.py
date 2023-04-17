@@ -3,7 +3,8 @@ import hashlib, random
 
 
 class BlockCipher(object):
-    def __init__(self, key, nonce, blockLength=8, rounds=8):
+    def __init__(self, key, nonce, blockLength=8, rounds=4):
+        assert rounds <= 4, "Rounds must be less than or equal to 4"
         self.key = hashlib.sha512(key.encode()).hexdigest()
         self.nonce = str(int(hashlib.sha256(nonce.encode()).hexdigest(), 16))[:blockLength]
         #print(f"{self.nonce=}")
@@ -17,8 +18,8 @@ class BlockCipher(object):
     def _encrypt(self, plaintext):
         plaintext = self.pad(plaintext)
         blocks = self.getBlocks(plaintext)
-        currentXor = self.nonce
         for _ in range(self.rounds):
+            currentXor = self.nonce
             #print(currentXor)
             for j in range(len(blocks)):
 
@@ -49,7 +50,7 @@ class BlockCipher(object):
 
     def _permute(self, block):
         random.seed(self.key)
-        perms = list(range(8))
+        perms = list(range(self.blockLength))
         random.shuffle(perms)
         perms = "".join([str(i) for i in perms])
         
@@ -75,9 +76,9 @@ class BlockCipher(object):
 
     def _decrypt(self, ciphertext):
         blocks = self.getBlocks(ciphertext)
-        currentXor = self.nonce
 
         for _ in range(self.rounds):
+            currentXor = self.nonce
             IVS = []
             for i in blocks:
                 IVS.append(currentXor)
@@ -96,10 +97,10 @@ class BlockCipher(object):
 
     def _unpermute(self, block):
         random.seed(self.key)
-        perms = list(range(8))
+        perms = list(range(self.blockLength))
         random.shuffle(perms)
         perms = "".join([str(i) for i in perms])
-        
+
         revperms = "".join([str(perms.index(str(i))) for i in range(0, self.blockLength)])
         return "".join([block[int(i)] for i in revperms])
 
@@ -117,10 +118,10 @@ class BlockCipher(object):
 
 plaintext = "Leave the pen drive in Room 18.103 at ECU."
 
-key = ""
+random.seed()
+key = "hello world"
 nonce = str(random.randint(0, 2**64))
-
-blockCipher = BlockCipher(key, nonce, 8, 1)
+blockCipher = BlockCipher(key, nonce, 8, 4)
 
 ciphertext = blockCipher.encrypt(plaintext)
 deciphertext = blockCipher.decrypt(ciphertext)
